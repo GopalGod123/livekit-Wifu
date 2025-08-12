@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     gcc \
     g++ \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -20,6 +21,10 @@ ENV PORT=8000
 
 EXPOSE 8000
 
-# ✅ Fixed: Use ENTRYPOINT + CMD pattern
+# ✅ Added health check for Railway monitoring
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:${PORT}/health', timeout=5)" || exit 1
+
+# Start Meera in production mode
 ENTRYPOINT ["python", "agent.py"]
 CMD ["start"]
