@@ -43,4 +43,9 @@ async def entrypoint(ctx: agents.JobContext):
     await session.generate_reply(instructions=SESSION_INSTRUCTION)
 
 if __name__ == "__main__":
-    agents.cli.run_app(agents.WorkerOptions(entrypoint_fnc=entrypoint))
+    import os
+    port = int(os.environ.get("PORT", 8000))  # Railway compatibility
+    agents.cli.run_app(agents.WorkerOptions(
+        entrypoint_fnc=entrypoint,
+        port=port
+    ))
