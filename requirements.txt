@@ -1,10 +1,22 @@
-livekit-agents
-livekit-plugins-openai
-livekit-plugins-silero
-livekit-plugins-google
-livekit-plugins-noise-cancellation
-mem0ai
-duckduckgo-search
-langchain_community
-requests
-python-dotenv
+# Core LiveKit Dependencies
+livekit-agents>=1.2.5
+livekit-plugins-openai>=1.2.5
+livekit-plugins-silero>=1.2.5
+livekit-plugins-google>=1.2.5
+livekit-plugins-noise-cancellation>=0.2.5  # ✅ Fixed version
+
+# AI Memory & Search
+mem0ai>=0.1.0
+duckduckgo-search>=6.2.0
+langchain-community>=0.0.38
+
+# HTTP Requests & Environment
+requests>=2.32.0
+python-dotenv>=1.0.0
+
+# Audio & Voice Processing
+sounddevice>=0.5.0
+numpy>=1.24.0
+
+# Optional: For better error handling
+pydantic>=2.0.0
