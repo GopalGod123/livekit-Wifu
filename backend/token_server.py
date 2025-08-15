@@ -3,11 +3,63 @@ import os
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import subprocess
+import threading
+import signal
+import sys
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Allow frontend connections
+
+# Track per-session agent processes: key = (room, identity)
+AGENT_PROCS = {}
+
+def _proc_key(room: str, identity: str) -> tuple:
+    return (room or "", identity or "")
+
+def start_agent(room: str, identity: str) -> bool:
+    key = _proc_key(room, identity)
+    # Already running?
+    proc = AGENT_PROCS.get(key)
+    if proc and proc.poll() is None:
+        return True
+    # Spawn agent in connect mode targeting the participant
+    cmd = [
+        sys.executable or "python",
+        "-u",
+        "agent.py",
+        "connect",
+        "--room",
+        room,
+        "--participant-identity",
+        identity,
+    ]
+    env = os.environ.copy()
+    # Avoid port clash with web server: force agent to use AGENT_PORT (default 9000)
+    env["PORT"] = os.getenv("AGENT_PORT", "9000")
+    p = subprocess.Popen(cmd, cwd=os.path.dirname(__file__), env=env)
+    AGENT_PROCS[key] = p
+    return True
+
+def stop_agent(room: str, identity: str) -> bool:
+    key = _proc_key(room, identity)
+    proc = AGENT_PROCS.get(key)
+    if not proc:
+        return False
+    if proc.poll() is None:
+        try:
+            # Graceful terminate, then kill if needed
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except Exception:
+                proc.kill()
+        except Exception:
+            pass
+    AGENT_PROCS.pop(key, None)
+    return True
 
 @app.route('/get-token', methods=['POST'])
 def get_token():
@@ -47,6 +99,32 @@ def get_token():
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy', 'message': 'Meera token server is running'})
+
+@app.route('/agent/start', methods=['POST'])
+def agent_start():
+    try:
+        data = request.json or {}
+        user_name = data.get('userName')
+        room_name = data.get('roomName')
+        if not user_name or not room_name:
+            return jsonify({'error': 'userName and roomName required'}), 400
+        started = start_agent(room_name, user_name)
+        return jsonify({'started': started})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/agent/stop', methods=['POST'])
+def agent_stop():
+    try:
+        data = request.json or {}
+        user_name = data.get('userName')
+        room_name = data.get('roomName')
+        if not user_name or not room_name:
+            return jsonify({'error': 'userName and roomName required'}), 400
+        stopped = stop_agent(room_name, user_name)
+        return jsonify({'stopped': stopped})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))

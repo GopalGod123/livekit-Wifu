@@ -25,5 +25,10 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl --fail http://localhost:${PORT}/health || exit 1
 
-# Default to production WSGI server; shell expands $PORT with fallback
-CMD ["sh", "-c", "gunicorn -b 0.0.0.0:${PORT:-8000} token_server:app"]
+# Run both: agent (background) + web (foreground). Render sends $PORT for web.
+# Configure via env:
+# - ROOM_NAME (default: meera-health-room)
+# - PARTICIPANT_IDENTITY (default: User)
+# - AGENT_PORT (default: 9000) to avoid conflict with web $PORT
+# - GOOGLE_API_KEY, LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET must be set
+CMD ["sh", "-c", "PORT=${AGENT_PORT:-9000} python -u agent.py connect --room \"${ROOM_NAME:-meera-health-room}\" --participant-identity \"${PARTICIPANT_IDENTITY:-User}\" & exec gunicorn -b 0.0.0.0:${PORT:-8000} token_server:app"]

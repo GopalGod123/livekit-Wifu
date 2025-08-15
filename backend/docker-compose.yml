@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meera-web
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - ROOM_NAME=meera-health-room
+      - PARTICIPANT_IDENTITY=राजेश जी
+      - AGENT_PORT=9000
+    command: sh -c "exec gunicorn -b 0.0.0.0:8000 token_server:app"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # If you prefer a dedicated always-on agent instead of on-demand spawning,
+  # uncomment this service and set the same env vars. Make sure the room/name
+  # match your frontend.
+  # agent:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: meera-agent
+  #   env_file:
+  #     - ./backend/.env
+  #   environment:
+  #     - PORT=9000
+  #   command: >-
+  #     sh -c "PORT=9000 python -u agent.py connect --room 'meera-health-room' --participant-identity 'राजेश जी'"
+  #   restart: unless-stopped

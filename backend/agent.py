@@ -21,8 +21,9 @@ async def entrypoint(ctx: agents.JobContext):
     # ✅ Female voice with caring personality
     model = RealtimeModel(
         instructions=AGENT_INSTRUCTION,
-        voice="Aoede",  # ✅ Perfect female voice for caring companion
-        temperature=0.9  # ✅ Slightly higher for more emotional warmth
+        temperature=0.9,
+        voice="Puck",
+        model="gemini-2.0-flash-exp"
     )
     
     # ✅ Clean AgentSession without tools parameter
